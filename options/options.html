@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>YouTube Playlist Analyzer — Settings</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="head">
+      <span class="logo-dot" aria-hidden="true"></span>
+      <h1>Playlist Analyzer · Settings</h1>
+    </header>
+
+    <section class="card">
+      <h2>YouTube Data API key (optional)</h2>
+      <p class="muted">
+        Without a key the extension still works in <b>limited mode</b>: duration totals
+        for the videos visible in the playlist side panel, topic summaries, and the
+        yt-dlp command generator. Adding a free API key enables the full playlist,
+        likes, views and comment-sentiment features.
+      </p>
+
+      <div class="row">
+        <input type="text" id="api-key" placeholder="AIza…" autocomplete="off" />
+        <button id="save" class="primary-btn">Save</button>
+      </div>
+      <p id="status" class="status muted"></p>
+
+      <details>
+        <summary>How to get a free API key</summary>
+        <ol>
+          <li>Open <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a>.</li>
+          <li>Create or pick a project.</li>
+          <li>Open <b>APIs &amp; Services → Library</b> and enable <b>YouTube Data API v3</b>.</li>
+          <li>Open <b>APIs &amp; Services → Credentials</b>, click <b>Create credentials → API key</b>.</li>
+          <li>Paste it above and click <b>Save</b>.</li>
+        </ol>
+        <p class="muted small">
+          Your key is stored only in this browser (<code>chrome.storage.local</code>) and is
+          sent only to <code>googleapis.com</code> when you run an analysis. It never leaves
+          your machine for any other destination.
+        </p>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>About</h2>
+      <ul class="kv">
+        <li><b>Version</b> <span id="ver">—</span></li>
+        <li><b>Permissions</b> <span>activeTab, storage, scripting, host: youtube.com &amp; googleapis.com</span></li>
+        <li><b>Source data</b> <span>YouTube Data API v3 (with key) · public DOM (without)</span></li>
+      </ul>
+    </section>
+  </main>
+  <script type="module" src="options.js"></script>
+</body>
+</html>

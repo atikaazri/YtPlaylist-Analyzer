@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube Playlist Analyzer</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo-dot" aria-hidden="true"></span>
+      <h1>Playlist Analyzer</h1>
+    </div>
+    <button id="open-options" class="icon-btn" title="Settings" aria-label="Settings">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+    </button>
+  </header>
+
+  <section id="state-empty" class="state hidden">
+    <div class="empty-illu" aria-hidden="true">▶</div>
+    <h2>Open a YouTube playlist</h2>
+    <p>Navigate to a playlist or a video that is part of a playlist on <strong>youtube.com</strong>, then click the extension again.</p>
+    <p class="hint">A playlist URL contains a <code>?list=</code> parameter.</p>
+  </section>
+
+  <section id="state-loaded" class="state hidden">
+    <div class="playlist-card">
+      <div class="playlist-meta">
+        <h2 id="pl-title">—</h2>
+        <p class="muted"><span id="pl-channel">—</span> · <span id="pl-count">0</span> videos</p>
+      </div>
+      <button id="btn-refresh" class="ghost-btn">Refresh</button>
+    </div>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="duration" role="tab">Duration</button>
+      <button class="tab" data-tab="stats" role="tab">Stats</button>
+      <button class="tab" data-tab="sentiment" role="tab">Sentiment</button>
+      <button class="tab" data-tab="topics" role="tab">Topics</button>
+      <button class="tab" data-tab="ytdlp" role="tab">yt-dlp</button>
+    </nav>
+
+    <!-- DURATION TAB -->
+    <div class="panel active" data-panel="duration">
+      <div id="duration-loading" class="loading hidden">
+        <div class="spinner"></div>
+        <p id="duration-progress">Loading playlist…</p>
+      </div>
+
+      <div id="duration-content" class="hidden">
+        <div class="metric-grid">
+          <div class="metric">
+            <span class="metric-label">Total duration</span>
+            <span id="m-total" class="metric-value">—</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Selected range</span>
+            <span id="m-range" class="metric-value">—</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Videos in range</span>
+            <span id="m-range-count" class="metric-value">—</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Average per video</span>
+            <span id="m-avg" class="metric-value">—</span>
+          </div>
+        </div>
+
+        <div class="range-controls">
+          <h3>Range selector</h3>
+          <div class="range-inputs">
+            <label>From <input type="number" id="range-from" min="1" value="1" /></label>
+            <label>To <input type="number" id="range-to" min="1" value="1" /></label>
+            <button id="range-apply" class="primary-btn">Apply</button>
+          </div>
+        </div>
+
+        <div class="watch-times">
+          <h3>Estimated watch time</h3>
+          <ul id="watch-list" class="kv-list"></ul>
+        </div>
+
+        <div id="duration-source" class="source-note muted"></div>
+      </div>
+
+      <div id="duration-error" class="error-box hidden"></div>
+    </div>
+
+    <!-- STATS TAB -->
+    <div class="panel" data-panel="stats">
+      <div id="stats-empty" class="info-box">
+        Likes and views require the YouTube Data API.
+        <button id="open-options-stats" class="link-btn">Add API key</button>
+      </div>
+      <div id="stats-loading" class="loading hidden">
+        <div class="spinner"></div><p>Fetching video stats…</p>
+      </div>
+      <div id="stats-content" class="hidden">
+        <div class="metric-grid">
+          <div class="metric"><span class="metric-label">Total likes</span><span id="s-total-likes" class="metric-value">—</span></div>
+          <div class="metric"><span class="metric-label">Total views</span><span id="s-total-views" class="metric-value">—</span></div>
+          <div class="metric"><span class="metric-label">Avg likes / video</span><span id="s-avg-likes" class="metric-value">—</span></div>
+          <div class="metric"><span class="metric-label">Like / view ratio</span><span id="s-ratio" class="metric-value">—</span></div>
+        </div>
+        <div class="highlight-row">
+          <div class="highlight">
+            <h4>Most liked</h4>
+            <p id="s-most" class="muted">—</p>
+          </div>
+          <div class="highlight">
+            <h4>Least liked</h4>
+            <p id="s-least" class="muted">—</p>
+          </div>
+        </div>
+        <p class="muted small">Note: dislike counts are not provided by YouTube anymore.</p>
+      </div>
+      <div id="stats-error" class="error-box hidden"></div>
+      <button id="btn-load-stats" class="primary-btn">Load stats</button>
+    </div>
+
+    <!-- SENTIMENT TAB -->
+    <div class="panel" data-panel="sentiment">
+      <div id="sent-empty" class="info-box">
+        Comment analysis requires the YouTube Data API.
+        <button id="open-options-sent" class="link-btn">Add API key</button>
+      </div>
+      <div class="sent-controls">
+        <label>Comments per video
+          <input type="number" id="sent-per-video" min="5" max="100" value="25" />
+        </label>
+        <label>Max videos to scan
+          <input type="number" id="sent-max-videos" min="1" max="50" value="10" />
+        </label>
+      </div>
+      <button id="btn-load-sentiment" class="primary-btn">Analyze comments</button>
+
+      <div id="sent-loading" class="loading hidden">
+        <div class="spinner"></div>
+        <p id="sent-progress">Analyzing…</p>
+      </div>
+
+      <div id="sent-content" class="hidden">
+        <div class="sentiment-bar" aria-hidden="true">
+          <div id="bar-pos" class="bar-pos"></div>
+          <div id="bar-neu" class="bar-neu"></div>
+          <div id="bar-neg" class="bar-neg"></div>
+        </div>
+        <div class="sent-legend">
+          <span><i class="dot dot-pos"></i> Positive <b id="pct-pos">0%</b></span>
+          <span><i class="dot dot-neu"></i> Neutral <b id="pct-neu">0%</b></span>
+          <span><i class="dot dot-neg"></i> Negative <b id="pct-neg">0%</b></span>
+        </div>
+        <div class="sent-summary">
+          <p>Overall: <span id="sent-overall" class="badge">neutral</span> (avg score <span id="sent-avg">0</span>, <span id="sent-total">0</span> comments)</p>
+        </div>
+        <div class="theme-cols">
+          <div>
+            <h4>Common positive themes</h4>
+            <ul id="theme-pos" class="chip-list"></ul>
+          </div>
+          <div>
+            <h4>Common complaints</h4>
+            <ul id="theme-neg" class="chip-list"></ul>
+          </div>
+        </div>
+      </div>
+      <div id="sent-error" class="error-box hidden"></div>
+    </div>
+
+    <!-- TOPICS TAB -->
+    <div class="panel" data-panel="topics">
+      <div id="topics-loading" class="loading hidden">
+        <div class="spinner"></div><p>Reading titles…</p>
+      </div>
+      <div id="topics-content" class="hidden">
+        <p class="muted">This playlist mainly covers:</p>
+        <ul id="topics-list" class="topic-list"></ul>
+        <p id="topics-meta" class="muted small"></p>
+      </div>
+      <div id="topics-error" class="error-box hidden"></div>
+    </div>
+
+    <!-- YT-DLP TAB -->
+    <div class="panel" data-panel="ytdlp">
+      <div class="form-grid">
+        <label>Format
+          <select id="yt-format">
+            <option value="best">Best video + audio</option>
+            <option value="best1080">Best up to 1080p</option>
+            <option value="best720">Best up to 720p</option>
+            <option value="best480">Best up to 480p</option>
+            <option value="audio_best">Audio only (best, native)</option>
+            <option value="audio_mp3">Audio only (MP3)</option>
+            <option value="audio_opus">Audio only (Opus)</option>
+          </select>
+        </label>
+
+        <label>Platform
+          <select id="yt-platform">
+            <option value="windows">Windows</option>
+            <option value="unix">macOS / Linux</option>
+          </select>
+        </label>
+
+        <label>Start # <input type="number" id="yt-start" min="1" placeholder="(optional)" /></label>
+        <label>End # <input type="number" id="yt-end" min="1" placeholder="(optional)" /></label>
+
+        <label class="full">Output folder
+          <input type="text" id="yt-out" placeholder="e.g. ~/Videos/Playlist or D:\Downloads" />
+        </label>
+
+        <label class="full">Filename template
+          <input type="text" id="yt-template" value="%(playlist_index)s - %(title).200B [%(id)s].%(ext)s" />
+        </label>
+
+        <label class="checkbox"><input type="checkbox" id="yt-thumbnail" checked /> Embed thumbnail</label>
+        <label class="checkbox"><input type="checkbox" id="yt-metadata" checked /> Embed metadata</label>
+        <label class="checkbox"><input type="checkbox" id="yt-subs" /> Subtitles</label>
+        <label class="checkbox"><input type="checkbox" id="yt-autosubs" /> Include auto-subs</label>
+        <label class="checkbox"><input type="checkbox" id="yt-comments" /> Save comments JSON</label>
+        <label class="checkbox"><input type="checkbox" id="yt-info" /> Save .info.json</label>
+        <label class="checkbox"><input type="checkbox" id="yt-desc" /> Save description</label>
+
+        <label class="full">Subtitle languages (comma sep.)
+          <input type="text" id="yt-sublangs" value="en.*" />
+        </label>
+        <label class="full">Download archive (skip already-downloaded)
+          <input type="text" id="yt-archive" placeholder="e.g. ~/.yt-archive.txt" />
+        </label>
+      </div>
+
+      <div class="cmd-box">
+        <label>Generated command</label>
+        <pre id="yt-cmd" class="cmd"></pre>
+        <button id="yt-copy" class="primary-btn">Copy command</button>
+      </div>
+
+      <details class="examples">
+        <summary>Quick examples</summary>
+        <ul>
+          <li><b>Whole playlist, 1080p:</b> Format <i>Best up to 1080p</i>.</li>
+          <li><b>Videos 10–30, audio MP3:</b> Format <i>Audio only (MP3)</i>, Start 10, End 30.</li>
+          <li><b>Resumable archive:</b> Set <i>Download archive</i> to a file path. Re-run skips already done.</li>
+          <li><b>Subtitles:</b> Check <i>Subtitles</i>; languages like <code>en.*,es</code>.</li>
+        </ul>
+      </details>
+    </div>
+  </section>
+
+  <footer id="footer" class="muted small">
+    <span id="api-status">No API key — limited mode</span>
+  </footer>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
