@@ -1,0 +1,76 @@
+# ─── Secrets ─────────────────────────────────────────────
+*.pem
+*.key
+.env
+.env.*
+!.env.example
+secrets.json
+config.local.json
+
+# ─── Built / packed artifacts ─────────────────────────────────────────────────
+*.zip
+*.crx
+*.xpi
+dist/
+build/
+out/
+release/
+web-ext-artifacts/
+
+# ─── Node / tooling ───────────────────
+node_modules/
+.pnp.*
+.pnpm-store/
+.npm/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# ─── Test output ──────────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+*.lcov
+
+# ─── Editor / IDE ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*~
+.project
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# ─── OS noise ─────────────────────────────────────────────────────────────────
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+# Windows
+Thumbs.db
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# ─── Logs & temp ──────────────────────────────────────────────────────────────
+*.log
+logs/
+tmp/
+temp/
+.cache/
+
+# ─── Notes / scratch ───────────────────────────────────────────
+TODO.local.md
+NOTES.local.md
+scratch/
+*.local.md
