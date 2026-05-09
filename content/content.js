@@ -46,34 +46,91 @@ function getPlaylistTitle() {
   return docTitle || "Untitled playlist";
 }
 
-function scrapeVideosFromPanel() {
-  const items = document.querySelectorAll(
-    "ytd-playlist-panel-video-renderer, ytd-playlist-video-renderer"
-  );
-  const videos = [];
-  items.forEach((el, idx) => {
-    const titleEl = el.querySelector("a#wc-endpoint, a#video-title, #video-title, a.ytd-playlist-panel-video-renderer");
-    const timeEl = el.querySelector("ytd-thumbnail-overlay-time-status-renderer span, .badge-shape-wiz__text, #text.ytd-thumbnail-overlay-time-status-renderer");
-    const channelEl = el.querySelector("yt-formatted-string.ytd-channel-name, .ytd-channel-name a, #byline a");
-    const linkEl = el.querySelector("a#wc-endpoint, a#video-title, a.yt-simple-endpoint");
-    const href = linkEl?.href || "";
-    let videoId = "";
-    try {
-      if (href) videoId = new URL(href, location.origin).searchParams.get("v") || "";
-    } catch {}
-    const title = (titleEl?.title || titleEl?.textContent || "").trim();
-    const durationText = (timeEl?.textContent || "").trim();
-    const durationSec = parseClock(durationText);
-    if (!videoId && !title) return;
-    videos.push({
-      videoId,
-      title,
-      channel: (channelEl?.textContent || "").trim(),
-      durationSec,
-      durationText,
-      position: idx
+// Pick the DOM container(s) that actually hold this playlist's items.
+// Avoids picking up: search-result playlist previews, recommendation rails,
+// autoplay queues, or stale SPA-cached panels for other playlists.
+function pickScopes(playlistId) {
+  const scopes = [];
+
+  if (location.pathname.startsWith("/playlist")) {
+    // Full playlist page: items live inside ytd-playlist-video-list-renderer.
+    document.querySelectorAll("ytd-playlist-video-list-renderer").forEach(el => scopes.push(el));
+  } else {
+    // Watch page: items live inside the side panel.
+    // Match the panel whose playlist-id attribute equals the current playlistId,
+    // since YouTube can keep multiple panels in the DOM (SPA caching).
+    document.querySelectorAll("ytd-playlist-panel-renderer").forEach(el => {
+      const pid =
+        el.getAttribute("playlist-id") ||
+        el.getAttribute("data-playlist-id") ||
+        "";
+      if (!pid || pid === playlistId) scopes.push(el);
     });
-  });
+  }
+
+  // No scoped container found — fall back to whole document, but the per-item
+  // URL filter below will still drop anything that isn't part of this playlist.
+  if (!scopes.length) scopes.push(document);
+  return scopes;
+}
+
+function scrapeVideosFromPanel(playlistId) {
+  const scopes = pickScopes(playlistId);
+  const itemSelector = "ytd-playlist-panel-video-renderer, ytd-playlist-video-renderer";
+  const seen = new Set();
+  const videos = [];
+  let position = 0;
+
+  for (const scope of scopes) {
+    const items = scope.querySelectorAll(itemSelector);
+    items.forEach(el => {
+      const linkEl = el.querySelector("a#wc-endpoint, a#video-title, a.yt-simple-endpoint");
+      const href = linkEl?.href || "";
+
+      let videoId = "";
+      let listId = "";
+      try {
+        if (href) {
+          const u = new URL(href, location.origin);
+          videoId = u.searchParams.get("v") || "";
+          listId = u.searchParams.get("list") || "";
+        }
+      } catch {}
+
+      // Strict gates:
+      //   1) must have a real video id
+      //   2) if the link carries a list= param, it must equal the current playlist
+      //   3) drop duplicates (same video id seen via multiple matched scopes)
+      if (!videoId) return;
+      if (listId && listId !== playlistId) return;
+      if (seen.has(videoId)) return;
+      seen.add(videoId);
+
+      const titleEl = el.querySelector(
+        "a#wc-endpoint, a#video-title, #video-title, a.ytd-playlist-panel-video-renderer"
+      );
+      const timeEl = el.querySelector(
+        "ytd-thumbnail-overlay-time-status-renderer span, .badge-shape-wiz__text, #text.ytd-thumbnail-overlay-time-status-renderer"
+      );
+      const channelEl = el.querySelector(
+        "yt-formatted-string.ytd-channel-name, .ytd-channel-name a, #byline a"
+      );
+
+      const title = (titleEl?.title || titleEl?.textContent || "").trim();
+      const durationText = (timeEl?.textContent || "").trim();
+      const durationSec = parseClock(durationText);
+
+      videos.push({
+        videoId,
+        title,
+        channel: (channelEl?.textContent || "").trim(),
+        durationSec,
+        durationText,
+        position: position++
+      });
+    });
+  }
+
   return videos;
 }
 
@@ -83,7 +140,7 @@ function getPlaylistInfo() {
     return { found: false, reason: "No 'list' parameter in current URL." };
   }
   const title = getPlaylistTitle();
-  const videos = scrapeVideosFromPanel();
+  const videos = scrapeVideosFromPanel(playlistId);
   return {
     found: true,
     playlistId,

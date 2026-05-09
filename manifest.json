@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YouTube Playlist Analyzer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Analyze YouTube playlists: total/range duration, likes, comment sentiment, topic summary, and generate yt-dlp commands.",
   "icons": {
     "16": "assets/icon16.png",
